@@ -2,8 +2,6 @@
 
 import { allEvents, bySession, summarize, clearStats, loadStats, flush } from "./core/stats.js";
 import { lineChart } from "./core/chart.js";
-import { store } from "./core/store.js";
-import { openAccount } from "./account.js";
 
 const pct = (v) => Math.round(v) + " %";
 const sec = (v) => (v < 10 ? v.toFixed(1) : Math.round(v)).toString().replace(".", ",") + " s";
@@ -60,22 +58,6 @@ export function setupStatsView({ exercises, presets }) {
     periodSel.value = view.period;
     body.replaceChildren();
     const list = filtered();
-
-    if (!store.user) {
-      const p = document.createElement("p");
-      p.className = "stats-empty";
-      p.textContent = "Les statistiques sont gardées dans ton compte. Connecte-toi (ou crée un compte) pour enregistrer tes progrès et les retrouver ici.";
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "btn";
-      b.textContent = "Se connecter";
-      b.addEventListener("click", () => { dialog.close(); openAccount(); });
-      const wrap = document.createElement("div");
-      wrap.className = "stats-login";
-      wrap.append(p, b);
-      body.append(wrap);
-      return;
-    }
 
     if (!list.length) {
       const p = document.createElement("p");

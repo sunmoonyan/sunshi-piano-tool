@@ -1,44 +1,32 @@
-// Bibliothèque de morceaux : enregistrés sur le serveur avec un compte, en mémoire sinon.
-import { store } from "./store.js";
+// Bibliothèque de morceaux : gardée dans le navigateur (localStorage).
+const KEY = "spt:songs";
 
-const memory = new Map(); // id -> morceau complet (session en cours)
+function readAll() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
+}
 
 export async function listSongs() {
-  const list = [...memory.values()].map(meta);
-  if (store.user) {
-    try {
-      const res = await fetch("api/songs", { cache: "no-store" });
-      if (res.ok) for (const m of await res.json()) if (!memory.has(m.id)) list.push(m);
-    } catch (e) {}
-  }
-  return list.sort((a, b) => a.name.localeCompare(b.name, "fr"));
+  return Object.values(readAll()).map(meta).sort((a, b) => a.name.localeCompare(b.name, "fr"));
 }
 
 export async function getSong(id) {
-  if (!id) return null;
-  if (memory.has(id)) return memory.get(id);
-  if (!store.user) return null;
-  try {
-    const res = await fetch("api/songs/" + encodeURIComponent(id), { cache: "no-store" });
-    if (!res.ok) return null;
-    const song = await res.json();
-    memory.set(id, song);
-    return song;
-  } catch (e) { return null; }
+  return (id && readAll()[id]) || null;
 }
 
 export async function saveSong(song) {
-  memory.set(song.id, song);
-  if (!store.user) return;
-  const res = await fetch("api/songs/" + encodeURIComponent(song.id), {
-    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(song),
-  });
-  if (!res.ok) throw new Error("Le morceau n'a pas pu être enregistré (fichier trop gros ?).");
+  const all = readAll();
+  all[song.id] = song;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(all));
+  } catch (e) {
+    throw new Error("Le morceau n'a pas pu être enregistré (trop de données dans le navigateur ?).");
+  }
 }
 
 export async function deleteSong(id) {
-  memory.delete(id);
-  if (store.user) await fetch("api/songs/" + encodeURIComponent(id), { method: "DELETE" }).catch(() => {});
+  const all = readAll();
+  delete all[id];
+  try { localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) {}
 }
 
 function meta(s) { return { id: s.id, name: s.name, notes: s.parts.reduce((n, p) => n + p.count, 0) }; }

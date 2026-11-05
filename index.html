@@ -11,10 +11,6 @@
   <header class="top">
     <h1 class="logo">Sunshi's Piano Tool</h1>
     <div class="top-actions">
-    <button class="account-btn" id="open-account" type="button" aria-haspopup="dialog">
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
-      <span id="account-label">Se connecter</span>
-    </button>
     <button class="icon-btn" id="open-stats" type="button" aria-label="Statistiques" title="Statistiques" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 19h16M6 15l4-5 3 3 5-7"/></svg>
     </button>
@@ -127,36 +123,6 @@
       <span class="spacer"></span>
       <button class="btn ghost-btn" id="song-cancel" type="button">Annuler</button>
       <button class="btn" id="song-save" type="button">Enregistrer</button>
-    </div>
-  </div>
-</dialog>
-
-<dialog id="account" class="account-dialog" aria-labelledby="account-title">
-  <div class="account-panel">
-    <div class="sheet-head">
-      <h2 id="account-title">Compte</h2>
-      <button class="btn ghost-btn" id="close-account" type="button">Fermer</button>
-    </div>
-    <p class="account-msg" id="account-msg" hidden></p>
-    <form id="account-form" class="account-form">
-      <div class="tabs" role="group" aria-label="Choix">
-        <button type="button" data-account-mode="login">J'ai un compte</button>
-        <button type="button" data-account-mode="create">Créer un compte</button>
-      </div>
-      <label class="account-field"><span>Pseudo</span>
-        <input id="account-name" name="username" autocomplete="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_\-]{3,20}" autocapitalize="off" spellcheck="false">
-      </label>
-      <label class="account-field"><span>Mot de passe</span>
-        <input id="account-pass" name="password" type="password" autocomplete="current-password" required minlength="4">
-      </label>
-      <p class="account-error" id="account-error" role="alert"></p>
-      <button class="btn" id="account-submit" type="submit">Se connecter</button>
-      <p class="field-help">Sans compte, tu peux jouer librement, mais tes réglages, préréglages et statistiques ne sont pas gardés. Avec un compte, ils sont enregistrés sur le serveur (ton PC) et tu les retrouves sur n'importe quel appareil.</p>
-    </form>
-    <div id="account-connected" class="account-connected" hidden>
-      <p>Connecté en tant que <strong id="account-who"></strong>.</p>
-      <p class="field-help">Tes réglages, préréglages et statistiques sont enregistrés dans ton compte.</p>
-      <button class="mini danger" id="account-logout" type="button">Se déconnecter</button>
     </div>
   </div>
 </dialog>

@@ -3,48 +3,30 @@
 // Une réponse (un "événement") = une colonne de l'exercice terminée :
 //   { t: horodatage (ms), ex: id de l'exercice, p: id du préréglage ("" si aucun),
 //     ok: 1 si réussie du premier coup sinon 0, ms: temps de réponse, n: nombre de notes }
-// Enregistrées sur le serveur, dans le dossier du compte connecté. Sans compte : rien n'est enregistré.
+// Gardées dans le navigateur (localStorage).
 
-import { store } from "./store.js";
-
+const KEY = "spt:stats";
 const SESSION_GAP = 30 * 60 * 1000;   // plus de 30 min sans jouer = nouvelle séance
 const MAX_MS = 30000;                 // au-delà, on considère une pause
 
 let events = [];
-let pending = [];
-let flushTimer = null;
 
-export async function loadStats() {
-  events = [];
-  if (!store.user) return events;
-  try {
-    const res = await fetch("api/stats", { cache: "no-store" });
-    if (res.ok) events = await res.json();
-  } catch (e) {}
+export function loadStats() {
+  try { events = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { events = []; }
   return events;
 }
 
 export function record(ev) {
-  if (!store.user) return;
   const e = { ...ev, ms: Math.min(MAX_MS, Math.round(ev.ms)) };
   events.push(e);
-  pending.push(e);
-  clearTimeout(flushTimer);
-  flushTimer = setTimeout(flush, 1500);
+  try { localStorage.setItem(KEY, JSON.stringify(events)); } catch (e) {}
 }
 
-export function flush() {
-  if (!pending.length) return;
-  const batch = pending;
-  pending = [];
-  fetch("api/stats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(batch), keepalive: true })
-    .catch(() => { pending = batch.concat(pending); });
-}
+export function flush() {} // plus rien à envoyer : record() enregistre déjà tout de suite
 
-export async function clearStats() {
+export function clearStats() {
   events = [];
-  pending = [];
-  if (store.user) await fetch("api/stats", { method: "DELETE" }).catch(() => {});
+  try { localStorage.removeItem(KEY); } catch (e) {}
 }
 
 export const allEvents = () => events;

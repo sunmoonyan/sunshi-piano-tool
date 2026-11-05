@@ -2,7 +2,6 @@
 import { songFromMidi, guessHands, keyLabel, bpmOf } from "./core/song.js";
 import { listSongs, getSong, saveSong, deleteSong } from "./core/library.js";
 import { midiName } from "./core/music.js";
-import { store } from "./core/store.js";
 
 const ROLES = [
   { value: "right", label: "Main droite" },
@@ -74,7 +73,6 @@ export function setupSongUI({ settings, onSong }) {
     $("song-info").textContent = bits.join(", ");
     $("song-delete").hidden = fresh;
     $("song-save").textContent = fresh ? "Ajouter le morceau" : "Enregistrer";
-    $("song-dialog-note").textContent = store.user ? "" : "Tu n'es pas connecté : le morceau sera oublié en fermant la page.";
     renderParts();
     dialog.showModal();
   }

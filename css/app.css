@@ -98,13 +98,6 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 .icon-btn.small { width: 36px; height: 36px; border-color: var(--line); background: var(--paper); }
 .icon-btn.small:hover { border-color: var(--accent); }
 .icon-btn.playing { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.account-btn {
-  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 10px; border-radius: 999px; max-width: 11rem;
-  border: 1px solid var(--line); background: var(--paper); color: var(--muted); font-size: var(--step-0); cursor: pointer;
-}
-.account-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.account-btn.signed-in { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 40%, var(--line)); font-weight: 700; }
-.account-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ---------- Navigation : exercice, préréglage, tonalité ---------- */
 .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
@@ -204,15 +197,13 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 select, input[type="number"] { color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
 input[type="number"] { width: 6em; }
 
-/* ---------- Panneaux (réglages, stats, compte) ---------- */
+/* ---------- Panneaux (réglages, stats) ---------- */
 dialog { border: 0; padding: 0; background: transparent; color: var(--ink); max-width: none; max-height: none; width: 100%; height: 100%; margin: 0; }
 dialog::backdrop { background: rgba(8, 12, 10, .42); }
 @media (prefers-reduced-motion: no-preference) {
   dialog[open] .sheet, dialog[open] .stats-panel { animation: slide-in .22s ease-out; }
-  dialog[open] .account-panel { animation: rise .2s ease-out; }
 }
 @keyframes slide-in { from { transform: translateX(24px); opacity: 0; } }
-@keyframes rise { from { transform: translateY(10px); opacity: 0; } }
 
 .sheet {
   background: var(--paper); margin-left: auto; width: min(460px, 100%); height: 100%; overflow-y: auto;
@@ -224,7 +215,7 @@ dialog::backdrop { background: rgba(8, 12, 10, .42); }
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   position: sticky; top: calc(-1 * max(16px, env(safe-area-inset-top, 0px))); background: var(--paper); padding-block: 8px; z-index: 1;
 }
-.sheet h2, .stats-panel h2, .account-panel h2 { font-family: var(--font-title); font-weight: 400; font-size: 2.2rem; line-height: 1; margin: 0; color: var(--accent); }
+.sheet h2, .stats-panel h2 { font-family: var(--font-title); font-weight: 400; font-size: 2.2rem; line-height: 1; margin: 0; color: var(--accent); }
 .sheet section { display: flex; flex-direction: column; gap: 16px; }
 .sheet h3 { margin: 0; font-size: var(--step-2); font-weight: 700; color: var(--ink); }
 .sheet section > div { display: flex; flex-direction: column; gap: 18px; }
@@ -307,30 +298,17 @@ dialog::backdrop { background: rgba(8, 12, 10, .42); }
 .stats-card th, .stats-card td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .stats-card th { color: var(--muted); font-weight: 400; }
 .stats-foot { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.stats-login { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 30px 10px; }
-.stats-login .stats-empty { padding: 0; max-width: 34rem; }
-
-/* ---------- Compte ---------- */
-.account-dialog { width: min(420px, calc(100% - 32px)); height: auto; margin: auto; }
-.account-panel { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
-.account-panel .sheet-head { position: static; background: none; padding: 0; }
-.account-msg { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--wash); font-weight: 700; }
-.account-form { display: flex; flex-direction: column; gap: 14px; }
-.account-form .tabs { align-self: flex-start; }
+/* ---------- Champs partagés (fenêtre « morceau ») ---------- */
 .account-field { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
 .account-field input { font-weight: 400; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; }
 .account-error { margin: 0; color: var(--bad); font-weight: 700; }
 .account-error:empty { display: none; }
-.account-connected { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.account-connected p { margin: 0; }
 
 /* ---------- Téléphone ---------- */
 @media (max-width: 520px) {
   .wrap { gap: 12px; }
   .top-actions { gap: 2px; }
   .icon-btn { width: 38px; height: 38px; }
-  .account-btn { padding: 0; width: 38px; height: 38px; justify-content: center; border-color: transparent; background: transparent; }
-  .account-btn span { display: none; }
   .key-label { margin-left: 0; }
   #kbd-zone { padding: 8px 6px 10px; }
 }

@@ -1,4 +1,5 @@
 #!/bin/bash
-# Sunshi's Piano Tool : lance le serveur local (site + réglages enregistrés sur ce PC)
+# Sunshi's Piano Tool : lance un petit serveur local pour tester le site
+# (le navigateur bloque les modules JS ouverts directement en fichier local)
 cd "$(dirname "$0")"
-python3 serveur.py 8000
+python3 -m http.server 8000

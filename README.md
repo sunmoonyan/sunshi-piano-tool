@@ -4,9 +4,12 @@ Entraînement à la lecture de notes au piano, avec clavier MIDI ou clavier à l
 
 ## Lancer
 
+Le site est 100 % statique (aucun serveur requis) : il peut être ouvert directement sur
+GitHub Pages, ou en local avec
+
     ./lancer.sh
 
-puis ouvrir l'adresse affichée (http://localhost:8000 sur le PC, http://IP-du-PC:8000 sur le téléphone).
+puis en ouvrant http://localhost:8000 (le navigateur bloque les modules JS ouverts en fichier local).
 
 ## Organisation
 
@@ -39,11 +42,9 @@ Types de réglages disponibles : `toggle`, `choice`, `select`, `number`, `noteRa
 `generate` reçoit `melodic = { on, mode, maxAcc }`. Si `on` est vrai, utiliser `melody()` ou
 `chordProgression()` de `js/core/melody.js`, et mettre `columns.keyLabel` pour afficher la tonalité.
 
-## Comptes
+## Données
 
-`serveur.py` gère des comptes simples (pseudo + mot de passe haché en PBKDF2).
-Sans compte on joue librement, rien n'est enregistré. Avec un compte, réglages,
-préréglages et statistiques sont dans `data/users/<pseudo>/`. Le navigateur ne garde
-qu'un cookie de connexion (30 jours). Le premier compte créé récupère les anciennes
-données de `data/state.json` et `data/stats.jsonl`.
+Pas de compte : réglages, préréglages, statistiques et morceaux importés sont gardés dans
+le navigateur (`localStorage`), propres à cet appareil et ce navigateur. Effacer les données
+du site (ou naviguer en privé) les efface aussi.
 # sunshi-piano-tool

@@ -5,7 +5,6 @@ import { Settings, renderFields } from "./core/settings.js";
 import { store } from "./core/store.js";
 import { record, flush } from "./core/stats.js";
 import { setupStatsView } from "./stats-view.js";
-import { setupAccount, openAccount } from "./account.js";
 import { renderStaff } from "./core/staff.js";
 import { Keyboard, beep, unlockAudio } from "./core/keyboard.js";
 import * as keyboardMod from "./core/keyboard.js";
@@ -273,7 +272,7 @@ function onNote(m) {
 
 // Statistiques : une réponse = une colonne terminée
 function recordAnswer(col) {
-  if (!store.user || !settings.get("statsOn")) return;
+  if (!settings.get("statsOn")) return;
   record({
     t: Date.now(),
     ex: exercise().id,
@@ -736,7 +735,7 @@ function renderPresets() {
   const help = document.createElement("p");
   help.className = "field-help";
   help.textContent = "Un préréglage garde l'exercice choisi et tous ses réglages (sauf la couleur et le mode clair/sombre). "
-    + (store.user ? `Ils sont enregistrés dans ton compte (${store.user}).` : "Tu n'es pas connecté : ils seront perdus en fermant la page. Connecte-toi pour les garder.");
+    + "Ils sont gardés dans ce navigateur.";
   box.append(form, help);
 }
 
@@ -878,17 +877,9 @@ window.addEventListener("resize", () => {
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", draw);
 
 // ---------- Statistiques ----------
-setupAccount();
 const statsSwitch = $("stats-on");
-statsSwitch.checked = !!store.user && settings.get("statsOn");
-statsSwitch.addEventListener("change", () => {
-  if (!store.user) {
-    statsSwitch.checked = false;
-    openAccount("Connecte-toi pour enregistrer tes statistiques.");
-    return;
-  }
-  settings.set("statsOn", statsSwitch.checked);
-});
+statsSwitch.checked = settings.get("statsOn");
+statsSwitch.addEventListener("change", () => settings.set("statsOn", statsSwitch.checked));
 setupStatsView({ exercises: EXERCISES, presets });
 addEventListener("pagehide", flush);
 document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); });
