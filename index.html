@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr" data-accent="green">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sunshi's Piano Tool</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 class="logo">Sunshi's Piano Tool</h1>
+    <div class="top-actions">
+    <button class="account-btn" id="open-account" type="button" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+      <span id="account-label">Se connecter</span>
+    </button>
+    <button class="icon-btn" id="open-stats" type="button" aria-label="Statistiques" title="Statistiques" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 19h16M6 15l4-5 3 3 5-7"/></svg>
+    </button>
+    <button class="icon-btn" id="open-settings" type="button" aria-label="Réglages" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7.3 7.3 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.4-1a.5.5 0 0 0-.6.2L2.5 8.8a.5.5 0 0 0 .1.6l2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.3c.1.2.4.3.6.2l2.4-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .2.3.4.5.4h3.8c.2 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.4 1c.2.1.5 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+    </button>
+    </div>
+  </header>
+
+  <nav class="bar">
+    <div class="tabs" id="exercise-tabs" role="group" aria-label="Exercice"></div>
+    <select class="preset-pick" id="preset-pick" aria-label="Préréglage" hidden></select>
+    <span class="key-label" id="key-label"></span>
+  </nav>
+
+  <div class="song-bar" id="song-bar" hidden>
+    <select id="song-pick" aria-label="Morceau"></select>
+    <button class="mini" id="song-import" type="button">Importer un fichier MIDI</button>
+    <button class="mini" id="song-config" type="button" disabled>Pistes et mains</button>
+    <input type="file" id="song-file" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+    <p class="song-error" id="song-error" role="alert" hidden></p>
+  </div>
+
+  <div class="song-bar" id="viewer-bar" hidden>
+    <button class="mini" id="viewer-right" type="button" aria-pressed="true">Clé de sol</button>
+    <button class="mini" id="viewer-left" type="button" aria-pressed="true">Clé de fa</button>
+  </div>
+
+  <main class="stage">
+    <div class="song-empty" id="song-empty" hidden>
+      <p>Importe un fichier MIDI (.mid) : chaque piste est attribuée à la main droite ou à la main gauche, puis la partition défile pendant que tu joues.</p>
+      <button class="btn" id="song-empty-import" type="button">Importer un fichier MIDI</button>
+    </div>
+    <div class="staff-card"><svg id="staff" role="img" aria-label="Portée"></svg></div>
+    <div class="transport">
+      <div class="score" aria-label="Score">
+        <span class="ok" title="Réussies"><b id="hits">0</b> justes</span>
+        <span class="bad" title="Erreurs"><b id="misses">0</b> erreurs</span>
+      </div>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+      <div class="transport-actions">
+        <label class="stats-switch" title="Enregistrer les réponses pour les statistiques">
+          <input type="checkbox" id="stats-on" role="switch"><span class="track" aria-hidden="true"></span><span>Stats</span>
+        </label>
+        <button class="icon-btn small" id="mic" type="button" aria-pressed="false" aria-label="Jouer sur un vrai piano (micro)" title="Jouer sur un vrai piano (micro)">
+          <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/></svg>
+        </button>
+        <span class="mic-note" id="mic-note" aria-live="polite" hidden></span>
+        <button class="icon-btn small" id="pause" type="button" aria-label="Pause" title="Pause" hidden>
+          <svg class="i-pause" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+          <svg class="i-play" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" hidden><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>
+        </button>
+        <button class="icon-btn small" id="listen" type="button" aria-label="Écouter la ligne" title="Écouter la ligne">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>
+        </button>
+        <button class="icon-btn small" id="restart" type="button" aria-label="Recommencer" title="Recommencer">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5"/></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <div id="kbd-zone">
+    <div class="kbd-scroll" id="kbd-scroll"></div>
+  </div>
+
+  <footer class="midi" id="midi">
+    <span class="dot"></span><span id="midi-text">Recherche du clavier MIDI…</span>
+    <button class="link-btn" id="midi-btn" type="button" hidden>Connecter</button>
+  </footer>
+</div>
+
+<dialog id="settings" aria-labelledby="settings-title">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="settings-title">Réglages</h2>
+      <button class="btn" id="close-settings" type="button">Fermer</button>
+    </div>
+    <section><h3>Préréglages</h3><div id="presets"></div></section>
+    <section><h3>Notes</h3><div id="fields-general"></div></section>
+    <section><h3 id="exercise-title">Exercice</h3><div id="fields-exercise"></div></section>
+    <section><h3>Apparence</h3><div id="fields-look"></div></section>
+    <section><h3>Affichage</h3><div id="fields-display"></div></section>
+    <section><h3>Clavier à l'écran</h3><div id="fields-keyboard"></div></section>
+    <section><h3>Jeu</h3><div id="fields-play"></div></section>
+  </div>
+</dialog>
+
+<dialog id="song-dialog" class="song-dialog" aria-labelledby="song-dialog-title">
+  <div class="song-panel">
+    <div class="sheet-head">
+      <h2 id="song-dialog-title">Pistes et mains</h2>
+    </div>
+    <label class="account-field"><span>Nom du morceau</span><input id="song-name" maxlength="120"></label>
+    <p class="field-help" id="song-info"></p>
+    <div class="song-parts-head">
+      <b>Pour chaque piste, quelle main la joue ?</b>
+      <button class="mini" id="song-guess" type="button">Proposition automatique</button>
+    </div>
+    <div id="song-parts" class="song-parts"></div>
+    <div class="field" id="song-split-row" hidden>
+      <label class="field-label" for="song-split">Séparation des mains</label>
+      <select id="song-split"></select>
+      <p class="field-help">Pour une piste « Les deux » : les notes à partir de celle-ci vont à la main droite, les plus graves à la main gauche.</p>
+    </div>
+    <p class="account-error" id="song-parts-hint"></p>
+    <p class="field-help" id="song-dialog-note"></p>
+    <div class="song-actions">
+      <button class="mini danger" id="song-delete" type="button">Supprimer le morceau</button>
+      <span class="spacer"></span>
+      <button class="btn ghost-btn" id="song-cancel" type="button">Annuler</button>
+      <button class="btn" id="song-save" type="button">Enregistrer</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="account" class="account-dialog" aria-labelledby="account-title">
+  <div class="account-panel">
+    <div class="sheet-head">
+      <h2 id="account-title">Compte</h2>
+      <button class="btn ghost-btn" id="close-account" type="button">Fermer</button>
+    </div>
+    <p class="account-msg" id="account-msg" hidden></p>
+    <form id="account-form" class="account-form">
+      <div class="tabs" role="group" aria-label="Choix">
+        <button type="button" data-account-mode="login">J'ai un compte</button>
+        <button type="button" data-account-mode="create">Créer un compte</button>
+      </div>
+      <label class="account-field"><span>Pseudo</span>
+        <input id="account-name" name="username" autocomplete="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_\-]{3,20}" autocapitalize="off" spellcheck="false">
+      </label>
+      <label class="account-field"><span>Mot de passe</span>
+        <input id="account-pass" name="password" type="password" autocomplete="current-password" required minlength="4">
+      </label>
+      <p class="account-error" id="account-error" role="alert"></p>
+      <button class="btn" id="account-submit" type="submit">Se connecter</button>
+      <p class="field-help">Sans compte, tu peux jouer librement, mais tes réglages, préréglages et statistiques ne sont pas gardés. Avec un compte, ils sont enregistrés sur le serveur (ton PC) et tu les retrouves sur n'importe quel appareil.</p>
+    </form>
+    <div id="account-connected" class="account-connected" hidden>
+      <p>Connecté en tant que <strong id="account-who"></strong>.</p>
+      <p class="field-help">Tes réglages, préréglages et statistiques sont enregistrés dans ton compte.</p>
+      <button class="mini danger" id="account-logout" type="button">Se déconnecter</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="stats-view" class="stats-dialog" aria-labelledby="stats-title">
+  <div class="stats-panel">
+    <div class="sheet-head">
+      <h2 id="stats-title">Statistiques</h2>
+      <button class="btn" id="close-stats" type="button">Fermer</button>
+    </div>
+    <div class="stats-filters">
+      <div class="tabs" role="group" aria-label="Vue">
+        <button type="button" data-stats-tab="all">Général</button>
+        <button type="button" data-stats-tab="exercise">Par exercice</button>
+        <button type="button" data-stats-tab="preset">Par préréglage</button>
+        <button type="button" data-stats-tab="song">Par morceau</button>
+      </div>
+      <select id="stats-period" aria-label="Période">
+        <option value="7">7 derniers jours</option>
+        <option value="30">30 derniers jours</option>
+        <option value="all">Depuis le début</option>
+      </select>
+    </div>
+    <div id="stats-body" class="stats-body"></div>
+    <div class="stats-foot">
+      <p class="field-help">Réussite = notes ou accords joués juste du premier coup. Temps = délai entre l'apparition de la note et la bonne réponse. Une séance = des réponses sans pause de plus de 30 min.</p>
+      <button class="mini danger" id="stats-clear" type="button">Effacer les statistiques</button>
+    </div>
+  </div>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
