@@ -1,6 +1,6 @@
 // Sunshi's Piano Tool : assemble les modules (réglages, portée, clavier, MIDI, exercices).
 
-import { midiOf, midiName, noteName, setNotation } from "./core/music.js";
+import { midiOf, midiName, noteName, setNotation, chordName } from "./core/music.js";
 import { Settings, renderFields } from "./core/settings.js";
 import { store } from "./core/store.js";
 import { record, flush } from "./core/stats.js";
@@ -11,8 +11,9 @@ import * as keyboardMod from "./core/keyboard.js";
 import { MicInput } from "./core/mic.js";
 import { MidiInput } from "./core/midi.js";
 import { EXERCISES } from "./exercises/index.js";
-import { songColumns, songRange, makeClock, keyLabel as songKeyLabel, spellMidi } from "./core/song.js";
+import { songColumns, songRange, makeClock, keyLabel as songKeyLabel, spellMidi, LEAD_SLOTS, SLOTS_PER_BEAT } from "./core/song.js";
 import { setupSongUI } from "./song-ui.js";
+import { setupEditorUI } from "./editor-ui.js";
 
 // ---------- Réglages ----------
 const DEFAULTS = {
@@ -27,6 +28,7 @@ const DEFAULTS = {
   keyMode: "both",        // major | minor | both
   keyAcc: 1,              // nombre max d'altérations à la clé
   names: "always",        // always | afterMiss | never
+  showChords: true,       // afficher le nom des accords sous la portée
   notation: "latin",      // latin (do ré mi) | english (C D E)
   nameOctave: false,
   showKeyboard: true,
@@ -62,9 +64,9 @@ if (!Array.isArray(store.state.presets)) {
 }
 const presets = () => store.state.presets;
 
-// les morceaux MIDI et le visualisateur ont leur propre portée : ces réglages ne les concernent pas
+// les morceaux MIDI, le visualisateur et l'éditeur ont leur propre portée : ces réglages ne les concernent pas
 const notSong = (s) => s.get("exercise") !== "midi";
-const notViewer = (s) => s.get("exercise") !== "viewer";
+const notViewer = (s) => s.get("exercise") !== "viewer" && s.get("exercise") !== "editor";
 const generated = (s) => notSong(s) && notViewer(s);
 const GENERAL_FIELDS = [
   {
@@ -107,6 +109,7 @@ const DISPLAY_FIELDS = [
     options: [{ value: "latin", label: "do ré mi" }, { value: "english", label: "C D E" }],
   },
   { key: "nameOctave", label: "Ajouter l'octave au nom (do4)", type: "toggle" },
+  { key: "showChords", label: "Nom des accords sous la portée", type: "toggle", help: "Dès que 3 sons différents ou plus sonnent ensemble (morceaux, visualisateur, éditeur)." },
   {
     key: "perRow", label: "Notes par ligne", type: "choice",
     options: [{ value: "auto", label: "Auto" }, { value: "4", label: "4" }, { value: "6", label: "6" }, { value: "8", label: "8" }, { value: "12", label: "12" }],
@@ -179,6 +182,7 @@ const columnCount = () => {
 };
 
 function newRow() {
+  if (isEditor()) return;
   $("song-empty").hidden = true;
   if (isSong()) return startSong();
   if (isViewer()) return startViewer();
@@ -197,12 +201,13 @@ function newRow() {
 }
 
 function draw() {
+  if (isEditor()) return;
   if (isSong()) return drawSong();
   if (isViewer()) return drawViewer();
   staffView = renderStaff($("staff"), {
     clef: settings.get("clef"),
     range: range(),
-    columns,
+    columns: withChordLabels(columns),
     current: cur,
     showName: (col) => settings.get("names") === "always" || (settings.get("names") === "afterMiss" && col.revealed),
     withOctave: settings.get("nameOctave"),
@@ -220,6 +225,15 @@ function draw() {
 function accStyle() {
   const ex = exercise();
   return ex.accidentalStyle ? ex.accidentalStyle(exOpts()) : "both";
+}
+
+// Nom de l'accord sous la portée (réglage général) : ne touche pas aux colonnes qui ont déjà
+// leur propre label (ex. triades, qui ont leur réglage dédié). Ne modifie pas les colonnes
+// d'origine (sinon désactiver le réglage ne ferait pas disparaître un label déjà calculé).
+function withChordLabels(cols) {
+  if (!settings.get("showChords")) return cols;
+  const pref = accStyle() === "flat" ? "flat" : "sharp";
+  return cols.map((c) => (c.label !== undefined ? c : { ...c, label: chordName(c.notes.map(midiOf), pref) }));
 }
 
 function buildKeyboard() {
@@ -309,6 +323,7 @@ function startSong() {
   scroll.pausedAt = null;
   sg.paused = false;
   $("song-empty").hidden = !!song;
+  $("song-scrub").hidden = !song;
   if (!song) {
     columns = []; cur = 0; songRangeCached = null;
     $("key-label").textContent = "";
@@ -375,7 +390,7 @@ function drawSong(pos = sg.view) {
   staffView = renderStaff($("staff"), {
     clef: "both",
     range: songRangeCached || { min: 21, max: 38 },
-    columns: columns.slice(a, b),
+    columns: withChordLabels(columns.slice(a, b)),
     current: cur - a,
     showName: (col) => settings.get("names") === "always" || (settings.get("names") === "afterMiss" && col.revealed),
     withOctave: settings.get("nameOctave"),
@@ -443,6 +458,7 @@ function songTick(now) {
 
   const [a, b] = songSlice(pos);
   if (sg.dirty || a !== sg.a || b !== sg.b) drawSong(pos); else staffView.setOffset(pos);
+  updateSeekUI();
   sg.raf = requestAnimationFrame(songTick);
 }
 
@@ -454,11 +470,57 @@ function finishSong() {
   flush();
 }
 
+// ---------- Morceaux : navigation (curseur, mesure précédente/suivante) ----------
+const fmtTime = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+// inverse de songClock.posAt : position (en colonnes) → secondes depuis le tout début (lancement compris)
+const slotToSec = (pos) => songClock.leadSec + songClock.tickToSec(Math.max(0, ((pos - LEAD_SLOTS) / SLOTS_PER_BEAT) * song.ppq));
+const curSec = () => (isScroll() ? sg.sec : slotToSec(sg.view));
+
+function updateSeekUI() {
+  const bar = $("seek-bar");
+  if (!isSong() || !song || !songClock) return;
+  bar.max = songClock.duration;
+  if (document.activeElement !== bar) bar.value = curSec();
+  $("seek-time").textContent = fmtTime(curSec()) + " / " + fmtTime(songClock.duration);
+}
+
+function seekTo(pos) {
+  if (!isSong() || !song || !columns.length || !songClock) return;
+  pos = Math.min(columns.at(-1).k, Math.max(0, pos));
+  let idx = columns.findIndex((c) => c.k >= pos - 0.001);
+  cur = idx < 0 ? columns.length : idx;
+  sg.done = cur >= columns.length;
+  sg.sec = slotToSec(pos);
+  sg.view = pos;
+  sg.snd = cur;        // ne rejoue pas les notes déjà passées
+  sg.autoAt = 0;
+  tapped.clear();
+  colStart = performance.now();
+  sg.dirty = true;
+  drawSong(pos);
+  updateSeekUI();
+}
+
+function stepMeasure(dir) {
+  if (!isSong() || !song || !columns.length) return;
+  const marks = [...new Set(columns.filter((c) => c.groupStart).map((c) => c.k))].sort((a, b) => a - b);
+  const pos = sg.view;
+  let target;
+  if (dir > 0) target = marks.find((k) => k > pos + 0.01);
+  else target = marks.filter((k) => k < pos - 0.01).at(-1);
+  seekTo(target ?? (dir > 0 ? columns.at(-1).k : 0));
+}
+
+$("seek-bar").addEventListener("input", (e) => seekTo(songClock.posAt(Number(e.target.value))));
+$("seek-prev").addEventListener("click", () => stepMeasure(-1));
+$("seek-next").addEventListener("click", () => stepMeasure(1));
+
 // ---------- Visualisateur de notes ----------
 // Affiche simplement les notes jouées, toujours au même endroit (pas de défilement).
 // Deux boutons choisissent les clés actives : une seule clé active → toutes les notes
 // s'y affichent (avec lignes supplémentaires), même les notes de l'autre main.
 const isViewer = () => !!exercise().viewer;
+const isEditor = () => !!exercise().editor;
 const VIEWER_GROUP_MS = 60;   // notes jouées à quelques ms d'intervalle → affichées en accord
 const VIEWER_RANGE = { min: 7, max: 49 };   // toute l'étendue du clavier, quelle que soit la clé
 let viewerCol = null, viewerLastT = 0;
@@ -485,6 +547,9 @@ function startViewer() {
 }
 
 function drawViewer() {
+  // viewerCol grandit note par note (accord qui s'accumule) : le label est recalculé à chaque fois,
+  // pas mis en cache comme pour les autres colonnes (withChordLabels), sinon il resterait figé à "".
+  if (viewerCol) viewerCol.label = settings.get("showChords") ? chordName(viewerCol.notes.map(midiOf), accStyle() === "flat" ? "flat" : "sharp") : "";
   staffView = renderStaff($("staff"), {
     clef: viewerClef(),
     range: VIEWER_RANGE,
@@ -816,7 +881,7 @@ $("restart").addEventListener("click", () => { hits = 0; misses = 0; feedback(""
 settings.onChange((key) => {
   renderPresetPicker();
   if (key === "*") return refreshAll();
-  if (["names", "nameOctave"].includes(key)) return draw();
+  if (["names", "nameOctave", "showChords"].includes(key)) return draw();
   if (["octaveExact", "skipOnMiss", "keySound"].includes(key)) return;
   if (key === "tempo") {
     // nouvelle vitesse sans faire sauter les notes : on garde la position actuelle
@@ -837,7 +902,10 @@ settings.onChange((key) => {
   if (key === "keyLabels") return buildKeyboard();
   if (key === "theme" || key === "accent") return applyTheme();
   if (key === "notation") { setNotation(settings.get("notation")); buildKeyboard(); renderSettings(); return draw(); }
-  if (key === "exercise") { syncTabs(); syncSongBar(); syncViewerBar(); renderSettings(); }
+  if (key === "exercise") {
+    syncTabs(); syncSongBar(); syncViewerBar(); syncEditorBar(); renderSettings();
+    if (isSong()) songUI.load(); // la liste des morceaux peut avoir changé depuis l'éditeur
+  }
   feedback("");
   buildKeyboard();
   newRow();
@@ -849,6 +917,7 @@ function refreshAll() {
   applyTheme();
   applyKeyboardVisibility();
   syncTabs();
+  syncEditorBar();
   feedback("");
   buildKeyboard();
   newRow();
@@ -864,8 +933,18 @@ function applyTheme() {
 
 function applyKeyboardVisibility() {
   const show = settings.get("showKeyboard");
-  $("kbd-zone").hidden = !show;
+  $("kbd-zone").hidden = !show || isEditor();
 }
+
+// ---------- Éditeur de partition : interface ----------
+function syncEditorBar() {
+  const on = isEditor();
+  $("editor-view").hidden = !on;
+  $("stage").hidden = on;
+  applyKeyboardVisibility();
+  if (on) editorUI.activate();
+}
+const editorUI = setupEditorUI({ settings });
 
 let lastCount = columnCount();
 window.addEventListener("resize", () => {
@@ -885,7 +964,7 @@ addEventListener("pagehide", flush);
 document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); });
 
 // ---------- Morceaux : interface ----------
-function syncSongBar() { $("song-bar").hidden = !isSong(); syncListenButton(); }
+function syncSongBar() { $("song-bar").hidden = !isSong(); $("song-scrub").hidden = !isSong() || !song; syncListenButton(); }
 const songUI = setupSongUI({ settings, onSong: (s) => { song = s; if (isSong()) startSong(); } });
 
 // ---------- Démarrage ----------
@@ -896,6 +975,7 @@ renderPresetPicker();
 applyKeyboardVisibility();
 syncSongBar();
 syncViewerBar();
+syncEditorBar();
 await songUI.load();
 buildKeyboard();
 newRow();

@@ -6,10 +6,12 @@ import notes from "./notes.js";
 import triads from "./triads.js";
 import midi from "./midi.js";
 import viewer from "./viewer.js";
+import editor from "./editor.js";
 
 export const EXERCISES = [
   notes,
   triads,
   midi,
   viewer,
+  editor,
 ];

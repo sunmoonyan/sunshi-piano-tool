@@ -46,6 +46,30 @@ export function midiName(m, prefer = "sharp", withOctave = true) {
   return names()[deg] + SIGNE[acc] + (withOctave ? Math.floor(m / 12) - 1 : "");
 }
 
+// Reconnaissance d'accords : à partir d'un ensemble de hauteurs MIDI, devine la fondamentale
+// et la qualité (parmi les formes les plus courantes). Renvoie "" si aucune forme ne correspond
+// (ou moins de 3 sons différents : on ne nomme pas les intervalles seuls).
+const CHORD_FORMS = [
+  ["0,4,7", ""], ["0,3,7", "m"], ["0,3,6", "°"], ["0,4,8", "+"],
+  ["0,2,7", "sus2"], ["0,5,7", "sus4"],
+  ["0,4,7,11", "maj7"], ["0,4,7,10", "7"], ["0,3,7,10", "m7"], ["0,3,6,10", "m7♭5"], ["0,3,6,9", "dim7"],
+  ["0,4,7,9", "6"], ["0,3,7,9", "m6"],
+];
+export function chordName(midis, prefer = "sharp") {
+  const classes = [...new Set(midis.map((m) => ((m % 12) + 12) % 12))];
+  if (classes.length < 3) return "";
+  const bass = Math.min(...midis) % 12;
+  let found = null;
+  for (const root of classes) {
+    const rel = classes.map((c) => (c - root + 12) % 12).sort((a, b) => a - b).join(",");
+    const form = CHORD_FORMS.find((f) => f[0] === rel);
+    if (form && (!found || root === bass)) { found = { root, short: form[1] }; if (root === bass) break; }
+  }
+  if (!found) return "";
+  const name = names()[(prefer === "flat" ? FLAT_MAP : SHARP_MAP)[found.root][0]] + SIGNE[(prefer === "flat" ? FLAT_MAP : SHARP_MAP)[found.root][1]];
+  return name.charAt(0).toUpperCase() + name.slice(1) + (found.short ? " " + found.short : "");
+}
+
 export function randInt(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
 }

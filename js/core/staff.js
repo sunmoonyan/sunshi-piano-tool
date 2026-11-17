@@ -5,11 +5,11 @@
 
 import { MIDDLE_C, noteName } from "./music.js";
 
-const S = 12;                 // écart entre deux lignes de portée
-const X0 = 92;                // début des notes (après la clé)
+export const S = 12;          // écart entre deux lignes de portée
+export const X0 = 92;         // début des notes (après la clé)
 const DX_NOTE = 66;           // largeur d'une colonne (note seule)
 const DX_CHORD = 96;          // largeur d'une colonne contenant un accord
-const STAVES = {
+export const STAVES = {
   treble: { bottom: 30, top: 38, glyph: "\u{1D11E}", size: 48, glyphLine: 3 },
   bass:   { bottom: 18, top: 26, glyph: "\u{1D122}", size: 44, glyphLine: 3.75 },
 };
@@ -27,7 +27,8 @@ function el(name, attrs, text) {
 }
 
 // Quelles portées afficher pour une clé et une fourchette de notes
-function layout(clef, range) {
+// (exporté : l'éditeur de partition en a besoin pour savoir où tombe un clic sur la portée)
+export function layout(clef, range) {
   const lowest = range ? range.min : 0, highest = range ? range.max : 60;
   const kinds = clef === "both" ? ["treble", "bass"] : [clef];
   const staves = [];
@@ -53,8 +54,28 @@ const yOf = (d, st) => st.y0 + (STAVES[st.kind].top - d) * S / 2;
 
 // scroll : { slots } → mode défilement : largeur fixe de `slots` colonnes, les colonnes sont placées
 // selon col.k et le calque des notes se déplace avec setOffset(pos). Renvoie { setOffset }.
+// Catégorie de durée (pour dessiner tête pleine/vide + hampe + crochet(s)) à partir de n.len
+// (en croches — voir song.js : SLOTS_PER_BEAT). Rapproche de la valeur standard la plus proche
+// (pointée comprise) : ronde=8, blanche=4, noire=2, croche=1, double-croche=0.5, triple=0.25.
+function durationCategory(len) {
+  const bases = [8, 4, 2, 1, 0.5, 0.25];
+  let base = bases[bases.length - 1], dotted = false, bestDiff = Infinity;
+  for (const b of bases) {
+    const plain = Math.abs(len - b), dot = Math.abs(len - b * 1.5);
+    if (plain < bestDiff) { bestDiff = plain; base = b; dotted = false; }
+    if (dot < bestDiff) { bestDiff = dot; base = b; dotted = true; }
+  }
+  return { base, dotted };
+}
+// Chemin d'un crochet de note, accroché au bout de la hampe (vers le bas si la hampe monte,
+// vers le haut si elle descend).
+function flagPath(x, y, stemUp) {
+  const d = stemUp ? 1 : -1;
+  return `M ${x} ${y} q 9 ${4 * d} 9 ${12 * d} q 0 ${7 * d} -8 ${11 * d}`;
+}
+
 let clipId = 0;
-export function renderStaff(svg, { clef, range, columns, current, showName, withOctave, scroll = null, tails = false }) {
+export function renderStaff(svg, { clef, range, columns, current, showName, withOctave, scroll = null, tails = false, noteShapes = false }) {
   const lay = layout(clef, range);
   const DX = scroll?.dx ?? (columns.some((c) => c.notes.length > 1) ? DX_CHORD : DX_NOTE);
   const W = X0 + 20 + (scroll ? scroll.slots : columns.length) * DX;
@@ -118,8 +139,12 @@ export function renderStaff(svg, { clef, range, columns, current, showName, with
     for (const n of col.notes) {
       const st = staffFor(n, lay), info = STAVES[st.kind], y = yOf(n.d, st);
       const nColor = n.other ? "var(--done)" : color;   // notes de l'autre main : en gris
-      // durée : un trait léger derrière la note (morceaux)
-      if (tails && n.len > 0.6) {
+      // durée : un trait léger derrière la note (morceaux), ou une vraie tête/hampe/crochet (éditeur)
+      let noteDur = null;
+      if (noteShapes && n.len > 0) {
+        const { base, dotted } = durationCategory(n.len);
+        noteDur = { base, dotted, filled: base <= 2, stemUp: y >= st.y0 + 2 * S };
+      } else if (tails && n.len > 0.6) {
         g.append(el("line", { x1: x + 9, x2: x + Math.max(10, n.len * DX - 8), y1: y, y2: y, stroke: nColor, "stroke-width": 4, "stroke-linecap": "round", "stroke-opacity": 0.22 }));
       }
       for (let d = info.bottom - 2; d >= n.d; d -= 2) {
@@ -133,7 +158,21 @@ export function renderStaff(svg, { clef, range, columns, current, showName, with
       if (n.acc) {
         g.append(el("text", { x: x + (accX.get(n) || -24), y: y + (n.acc < 0 ? 4 : 5), "font-size": n.acc < 0 ? 22 : 20, fill: nColor, "font-family": "var(--font-music)" }, n.acc < 0 ? "♭" : "♯"));
       }
-      g.append(el("ellipse", { cx: x, cy: y, rx: 8, ry: 5.6, transform: `rotate(-20 ${x} ${y})`, fill: "none", stroke: nColor, "stroke-width": 2.6 }));
+      g.append(el("ellipse", {
+        cx: x, cy: y, rx: 8, ry: 5.6, transform: `rotate(-20 ${x} ${y})`,
+        fill: noteDur?.filled ? nColor : "none", stroke: nColor, "stroke-width": 2.6,
+      }));
+      if (noteDur && noteDur.base < 8) {
+        const stemX = x + (noteDur.stemUp ? 7.6 : -7.6);
+        const stemY2 = noteDur.stemUp ? y - 3.4 * S : y + 3.4 * S;
+        g.append(el("line", { x1: stemX, x2: stemX, y1: y, y2: stemY2, stroke: nColor, "stroke-width": 1.6 }));
+        const flags = noteDur.base === 1 ? 1 : noteDur.base === 0.5 ? 2 : noteDur.base === 0.25 ? 3 : 0;
+        for (let f = 0; f < flags; f++) {
+          const fy = stemY2 + (noteDur.stemUp ? 1 : -1) * f * 7;
+          g.append(el("path", { d: flagPath(stemX, fy, noteDur.stemUp), stroke: nColor, "stroke-width": 1.6, fill: "none" }));
+        }
+      }
+      if (noteDur?.dotted) g.append(el("ellipse", { cx: x + 15, cy: y, rx: 2, ry: 2, fill: nColor }));
       if (showName(col) && !n.other) {
         g.append(el("text", { x: x + 12, y: y + 4, "font-size": 12, "font-weight": 700, fill: "var(--label)", "font-family": "var(--font-body)" }, noteName(n, withOctave)));
       }

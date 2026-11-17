@@ -79,13 +79,20 @@ export function spellMidi(midi) {
   return spell(midi, COMMON);
 }
 
+// Orthographe d'une note MIDI selon l'armure (sf : voir keySigLabel) — pour l'éditeur de partition
+export function spellMidiInKey(midi, sf) {
+  return spell(midi, sf < 0 ? FLATS : sf > 0 ? SHARPS : COMMON);
+}
+
+const MAJORS = ["do♭", "sol♭", "ré♭", "la♭", "mi♭", "si♭", "fa", "do", "sol", "ré", "la", "mi", "si", "fa♯", "do♯"];
+const MINORS = ["la♭", "mi♭", "si♭", "fa", "do", "sol", "ré", "la", "mi", "si", "fa♯", "do♯", "sol♯", "ré♯", "la♯"];
+// sf : nombre d'altérations à la clé (négatif = bémols, positif = dièses, de -7 à 7)
+export function keySigLabel(sf, minor) {
+  const n = (minor ? MINORS : MAJORS)[sf + 7];
+  return n ? n.charAt(0).toUpperCase() + n.slice(1) + (minor ? " mineur" : " majeur") : "";
+}
 export function keyLabel(song) {
-  const ks = song.keySig;
-  if (!ks) return "";
-  const majors = ["do♭", "sol♭", "ré♭", "la♭", "mi♭", "si♭", "fa", "do", "sol", "ré", "la", "mi", "si", "fa♯", "do♯"];
-  const minors = ["la♭", "mi♭", "si♭", "fa", "do", "sol", "ré", "la", "mi", "si", "fa♯", "do♯", "sol♯", "ré♯", "la♯"];
-  const n = (ks.minor ? minors : majors)[ks.sf + 7];
-  return n ? n.charAt(0).toUpperCase() + n.slice(1) + (ks.minor ? " mineur" : " majeur") : "";
+  return song.keySig ? keySigLabel(song.keySig.sf, song.keySig.minor) : "";
 }
 
 // ---------- Colonnes pour la portée ----------

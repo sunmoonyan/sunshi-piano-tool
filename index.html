@@ -39,12 +39,22 @@
     <button class="mini" id="viewer-left" type="button" aria-pressed="true">Clé de fa</button>
   </div>
 
-  <main class="stage">
+  <main class="stage" id="stage">
     <div class="song-empty" id="song-empty" hidden>
       <p>Importe un fichier MIDI (.mid) : chaque piste est attribuée à la main droite ou à la main gauche, puis la partition défile pendant que tu joues.</p>
       <button class="btn" id="song-empty-import" type="button">Importer un fichier MIDI</button>
     </div>
     <div class="staff-card"><svg id="staff" role="img" aria-label="Portée"></svg></div>
+    <div class="song-scrub" id="song-scrub" hidden>
+      <button class="icon-btn small" id="seek-prev" type="button" aria-label="Mesure précédente" title="Mesure précédente">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M6 5h2v14H6zM19 5.5v13a1 1 0 0 1-1.5.87l-10-6.5a1 1 0 0 1 0-1.74l10-6.5A1 1 0 0 1 19 5.5z"/></svg>
+      </button>
+      <input type="range" id="seek-bar" min="0" max="1" step="0.1" value="0" aria-label="Position dans le morceau">
+      <span class="seek-time" id="seek-time">0:00 / 0:00</span>
+      <button class="icon-btn small" id="seek-next" type="button" aria-label="Mesure suivante" title="Mesure suivante">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18 5h-2v14h2zM5 5.5v13a1 1 0 0 0 1.5.87l10-6.5a1 1 0 0 0 0-1.74l-10-6.5A1 1 0 0 0 5 5.5z"/></svg>
+      </button>
+    </div>
     <div class="transport">
       <div class="score" aria-label="Score">
         <span class="ok" title="Réussies"><b id="hits">0</b> justes</span>
@@ -72,6 +82,43 @@
       </div>
     </div>
   </main>
+
+  <section id="editor-view" hidden>
+    <div class="editor-toolbar">
+      <select id="editor-song-pick" aria-label="Partition à modifier"></select>
+      <button class="mini" id="editor-new" type="button">Nouvelle partition</button>
+      <label class="editor-field"><span>Nom</span><input type="text" id="editor-name" maxlength="120"></label>
+    </div>
+    <div class="editor-toolbar">
+      <label class="editor-field"><span>Tempo</span><input type="number" id="editor-tempo" min="20" max="300" step="1" value="120"> à la noire</label>
+      <label class="editor-field"><span>Mesure</span>
+        <select id="editor-tsnum"></select> / <select id="editor-tsden"></select>
+      </label>
+      <label class="editor-field"><span>Armure</span><select id="editor-keysig"></select></label>
+      <label class="editor-field-toggle"><input type="checkbox" id="editor-minor"><span>mineur</span></label>
+      <label class="editor-field"><span>Mesures</span><input type="number" id="editor-measures" min="1" max="99" step="1" value="16"></label>
+      <label class="editor-field"><span>Mesures par ligne</span><input type="number" id="editor-lines" min="1" max="16" step="1" value="4"></label>
+    </div>
+    <div class="editor-toolbar">
+      <div class="seg" id="editor-dur" role="group" aria-label="Durée de la note"></div>
+      <label class="editor-field-toggle"><input type="checkbox" id="editor-dotted"><span>pointée</span></label>
+      <button class="mini" id="editor-delete" type="button">Supprimer la note sélectionnée</button>
+    </div>
+    <div class="editor-toolbar">
+      <label class="editor-field-toggle"><input type="checkbox" id="editor-names"><span>Nom des notes</span></label>
+      <label class="editor-field-toggle"><input type="checkbox" id="editor-chords"><span>Nom des accords</span></label>
+      <span class="spacer"></span>
+      <button class="icon-btn small" id="editor-play" type="button" aria-label="Écouter" title="Écouter">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>
+      </button>
+      <button class="mini" id="editor-save" type="button">Enregistrer dans la bibliothèque</button>
+      <button class="mini" id="editor-export-midi" type="button">Exporter en MIDI</button>
+      <button class="mini" id="editor-export-pdf" type="button">Exporter en PDF</button>
+    </div>
+    <p class="field-help">Clique directement sur la portée pour poser une note de la durée choisie : clé de sol = main droite, clé de fa = main gauche, la ligne ou l'espace donne la hauteur (l'armure donne l'altération). Clique sur une note pour la sélectionner (glisse pour la déplacer, ↑ / ↓ pour l'altérer d'un demi-ton, ⌫ pour la supprimer).</p>
+    <div class="editor-preview" id="editor-preview"><svg id="editor-staff" role="img" aria-label="Portée de l'éditeur"></svg></div>
+    <div class="editor-line-controls" id="editor-lines-row"></div>
+  </section>
 
   <div id="kbd-zone">
     <div class="kbd-scroll" id="kbd-scroll"></div>
@@ -154,6 +201,8 @@
   </div>
 </dialog>
 
+<!-- Vrais échantillons de piano (chargés en ligne) ; l'appli retombe sur un son de secours si indisponible -->
+<script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.4.0/dist/soundfont-player.min.js" defer></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>
