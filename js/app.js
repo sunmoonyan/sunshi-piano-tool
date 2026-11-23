@@ -150,7 +150,7 @@ const PLAY_FIELDS = [
     key: "syncSound", label: "Le son suit la partition (bouton ▶)", type: "toggle", when: notViewer,
     help: "En défilement, chaque note sonne au moment où elle doit être jouée. Dans les morceaux « à mon rythme », le morceau sonne au rythme de tes touches. Sans défilement, ▶ fait écouter la ligne d'un coup.",
   },
-  { key: "pianoVolume", label: "Volume du piano", type: "number", min: 0, max: 200, step: 10, help: "En % du volume normal." },
+  { key: "pianoVolume", label: "Volume du piano", type: "number", min: 0, max: 1000, step: 10, help: "En % du volume normal." },
   { key: "octaveExact", label: "Exiger la bonne octave", type: "toggle", when: notViewer, help: "Décoché : la bonne note dans n'importe quelle octave est acceptée." },
   { key: "skipOnMiss", label: "Passer à la note suivante après une erreur", type: "toggle", when: notViewer },
   {
