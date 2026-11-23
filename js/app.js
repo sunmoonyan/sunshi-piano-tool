@@ -309,6 +309,7 @@ function startSong() {
   scroll.pausedAt = null;
   sg.paused = false;
   $("song-empty").hidden = !!song;
+  $("song-seek").hidden = !song;
   if (!song) {
     columns = []; cur = 0; songRangeCached = null;
     $("key-label").textContent = "";
@@ -325,11 +326,30 @@ function startSong() {
   cur = 0;
   tapped.clear();
   colStart = performance.now();
+  $("song-seek").max = Math.max(0, columns.length - 1);
+  $("song-seek").value = 0;
   const k = songKeyLabel(song);
   $("key-label").textContent = k ? "Tonalité : " + k : "";
   buildKeyboard();
   setPauseButton();
   sg.raf = requestAnimationFrame(songTick);
+}
+
+// Barre de lecture : se déplacer librement dans le morceau (par colonne)
+function seekTo(index) {
+  if (!song || !columns.length) return;
+  cur = Math.max(0, Math.min(columns.length - 1, Math.round(index)));
+  tapped.clear();
+  colStart = performance.now();
+  sg.view = columns[cur].k;
+  sg.autoAt = 0;
+  sg.done = false;
+  if (isScroll()) {
+    sg.sec = Math.max(0, songClock.tickToSec(columns[cur].tick) - songClock.leadSec);
+    sg.snd = cur;
+  }
+  sg.dirty = true;
+  drawSong();
 }
 
 // Écoute du morceau (bouton ▶) : le morceau sonne au rythme de ce que l'on joue
@@ -387,6 +407,7 @@ function drawSong(pos = sg.view) {
   staffView.setOffset(pos);
   $("hits").textContent = hits;
   $("misses").textContent = misses;
+  if (!seeking) $("song-seek").value = cur;
 }
 
 function songTick(now) {
@@ -814,6 +835,11 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) toggl
 
 $("restart").addEventListener("click", () => { hits = 0; misses = 0; feedback(""); newRow(); });
 
+let seeking = false;
+$("song-seek").addEventListener("pointerdown", () => { seeking = true; });
+$("song-seek").addEventListener("input", (e) => seekTo(Number(e.target.value)));
+$("song-seek").addEventListener("change", () => { seeking = false; });
+
 // Réagir aux changements de réglages
 settings.onChange((key) => {
   renderPresetPicker();
@@ -887,7 +913,7 @@ addEventListener("pagehide", flush);
 document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); });
 
 // ---------- Morceaux : interface ----------
-function syncSongBar() { $("song-bar").hidden = !isSong(); syncListenButton(); }
+function syncSongBar() { $("song-bar").hidden = !isSong(); $("song-seek").hidden = !isSong() || !song; syncListenButton(); }
 const songUI = setupSongUI({ settings, onSong: (s) => { song = s; if (isSong()) startSong(); } });
 
 // ---------- Démarrage ----------
