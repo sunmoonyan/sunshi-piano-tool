@@ -116,6 +116,11 @@
       <select id="song-split"></select>
       <p class="field-help">Pour une piste « Les deux » : les notes à partir de celle-ci vont à la main droite, les plus graves à la main gauche.</p>
     </div>
+    <div class="field" id="song-crop-row">
+      <label class="field-label" for="song-crop-start">Mesures à jouer</label>
+      <span class="crop-range"><input type="number" id="song-crop-start" min="1" step="1"> à <input type="number" id="song-crop-end" min="1" step="1" placeholder="fin"></span>
+      <p class="field-help">Limite la pratique à cette plage de mesures (pour travailler un passage précis). Laisse la fin vide pour aller jusqu'au bout.</p>
+    </div>
     <p class="account-error" id="song-parts-hint"></p>
     <p class="field-help" id="song-dialog-note"></p>
     <div class="song-actions">

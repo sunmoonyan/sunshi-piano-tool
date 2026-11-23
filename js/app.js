@@ -319,7 +319,9 @@ function startSong() {
   columns = songColumns(song, exOpts().hands || "both");
   songClock = makeClock(song);
   songRangeCached = songRange(columns);
-  Object.assign(sg, { sec: 0, view: 0, snd: 0, autoAt: 0, done: false, hits: 0, misses: 0, dirty: true, last: performance.now() });
+  // une plage de mesures (crop) démarre son propre délai d'entrée, sans attendre tout ce qui précède
+  const cropSec = columns.length ? Math.max(0, songClock.tickToSec(columns[0].tick) - songClock.leadSec) : 0;
+  Object.assign(sg, { sec: cropSec, view: 0, snd: 0, autoAt: 0, done: false, hits: 0, misses: 0, dirty: true, last: performance.now() });
   cur = 0;
   tapped.clear();
   colStart = performance.now();

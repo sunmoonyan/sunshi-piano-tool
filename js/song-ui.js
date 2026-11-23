@@ -1,5 +1,5 @@
 // Interface des morceaux : choix du morceau, import d'un fichier MIDI, pistes → mains.
-import { songFromMidi, guessHands, keyLabel, bpmOf } from "./core/song.js";
+import { songFromMidi, guessHands, keyLabel, bpmOf, barTicks } from "./core/song.js";
 import { listSongs, getSong, saveSong, deleteSong } from "./core/library.js";
 import { midiName } from "./core/music.js";
 
@@ -7,6 +7,7 @@ const ROLES = [
   { value: "right", label: "Main droite" },
   { value: "left", label: "Main gauche" },
   { value: "split", label: "Les deux (séparées)" },
+  { value: "auto", label: "Jouer automatiquement" },
   { value: "ignore", label: "Ignorer" },
 ];
 
@@ -74,8 +75,31 @@ export function setupSongUI({ settings, onSong }) {
     $("song-delete").hidden = fresh;
     $("song-save").textContent = fresh ? "Ajouter le morceau" : "Enregistrer";
     renderParts();
+    renderCrop();
     dialog.showModal();
   }
+
+  // ---------- Plage de mesures à jouer (pour travailler un passage) ----------
+  function renderCrop() {
+    const totalBars = barTicks(editing).length;
+    editing.config.cropStart = Math.min(Math.max(1, editing.config.cropStart || 1), totalBars);
+    const start = $("song-crop-start"), end = $("song-crop-end");
+    start.max = end.max = totalBars;
+    start.value = editing.config.cropStart;
+    end.value = editing.config.cropEnd || "";
+  }
+
+  $("song-crop-start").addEventListener("change", (e) => {
+    const totalBars = barTicks(editing).length;
+    editing.config.cropStart = Math.min(Math.max(1, Number(e.target.value) || 1), totalBars);
+    if (editing.config.cropEnd && editing.config.cropEnd < editing.config.cropStart) editing.config.cropEnd = null;
+    renderCrop();
+  });
+  $("song-crop-end").addEventListener("change", (e) => {
+    const v = Number(e.target.value);
+    editing.config.cropEnd = v && v >= editing.config.cropStart ? v : null;
+    renderCrop();
+  });
 
   function renderParts() {
     const box = $("song-parts");

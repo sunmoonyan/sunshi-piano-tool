@@ -90,13 +90,20 @@ export function keyLabel(song) {
 
 // ---------- Colonnes pour la portée ----------
 // hands : "right" | "left" | "both" (mains à jouer). Les notes de l'autre main sont affichées en gris.
+// Une piste en rôle "auto" est toujours jouée automatiquement (comme un accompagnement), quelle que
+// soit la main en cours de pratique. song.config.cropStart/cropEnd (numéros de mesure, 1-indexés,
+// cropEnd inclus) limitent le morceau à une plage de mesures ; cropEnd null = jusqu'à la fin.
 export function songColumns(song, hands) {
   const map = song.keySig ? (song.keySig.sf < 0 ? FLATS : song.keySig.sf > 0 ? SHARPS : COMMON) : COMMON;
+  const bars = barTicks(song);
+  const cropStartTick = bars[(song.config.cropStart || 1) - 1] ?? 0;
+  const cropEndTick = song.config.cropEnd != null ? (bars[song.config.cropEnd] ?? Infinity) : Infinity;
   const all = [];
   for (const part of song.parts) {
     const role = song.config.hands[part.id] || "ignore";
     if (role === "ignore") continue;
     for (const [midi, tick, dur] of part.notes) {
+      if (tick < cropStartTick || tick >= cropEndTick) continue;
       const hand = role === "split" ? (midi >= song.config.split ? "right" : "left") : role;
       all.push({ midi, tick, dur, hand });
     }
@@ -105,7 +112,6 @@ export function songColumns(song, hands) {
 
   // notes jouées ensemble (à une triple croche près) = une colonne
   const tol = song.ppq / 8;
-  const bars = barTicks(song);
   let bi = 0;
   const columns = [];
   for (const n of all) {
@@ -117,8 +123,9 @@ export function songColumns(song, hands) {
     }
     if (col.notes.some((x) => x.midi === n.midi && x.hand === n.hand)) continue; // doublon
     const written = spell(n.midi, map);
-    col.notes.push({ ...written, midi: n.midi, staff: n.hand === "right" ? "treble" : "bass", hand: n.hand,
-      other: hands !== "both" && n.hand !== hands, len: (n.dur / song.ppq) * SLOTS_PER_BEAT });
+    const staff = n.hand === "right" ? "treble" : n.hand === "left" ? "bass" : n.midi >= song.config.split ? "treble" : "bass";
+    col.notes.push({ ...written, midi: n.midi, staff, hand: n.hand,
+      other: n.hand === "auto" || (hands !== "both" && n.hand !== hands), len: (n.dur / song.ppq) * SLOTS_PER_BEAT });
   }
   for (const col of columns) {
     col.k = LEAD_SLOTS + (col.tick / song.ppq) * SLOTS_PER_BEAT;
@@ -129,7 +136,7 @@ export function songColumns(song, hands) {
   return columns;
 }
 
-function barTicks(song) {
+export function barTicks(song) {
   const bars = [];
   const sigs = song.timeSigs.length ? song.timeSigs : [{ tick: 0, num: 4, den: 4 }];
   for (let i = 0; i < sigs.length; i++) {
