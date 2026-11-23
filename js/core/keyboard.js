@@ -1,6 +1,7 @@
 // Clavier de piano à l'écran.
 
 import { names, degree, octaveOf, midiOf } from "./music.js";
+import { SplendidGrandPiano } from "https://unpkg.com/smplr@1.2.0/dist/index.mjs";
 
 const WHITE_W = 44;
 
@@ -60,29 +61,24 @@ export class Keyboard {
   }
 }
 
-// Petit son pour les touches à l'écran
-let actx = null;
+// Son des touches à l'écran : un vrai piano échantillonné (Steinway, via smplr).
+let actx = null, piano = null;
 // Les navigateurs n'autorisent le son qu'après un geste de l'utilisateur :
 // on débloque l'audio au premier toucher / clic / touche.
 export function unlockAudio() {
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    piano = piano || SplendidGrandPiano(actx);
     if (actx.state === "suspended") actx.resume();
   } catch (e) {}
 }
 // fin du dernier son joué par l'appli (le micro ne l'écoute pas, pour ne pas s'entendre lui-même)
 export let soundUntil = 0;
 export function beep(m, volume = 0.25) {
-  soundUntil = Math.max(soundUntil, performance.now() + 700);
+  soundUntil = Math.max(soundUntil, performance.now() + 1500);
   try {
     unlockAudio();
-    const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
-    o.type = "triangle";
-    o.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(volume, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-    o.connect(g); g.connect(actx.destination);
-    o.start(); o.stop(t + 0.65);
+    // l'ancien synthé prenait un gain 0-0.25 : on le reporte sur une vélocité MIDI (0-127)
+    piano.start({ note: m, velocity: Math.max(1, Math.min(127, Math.round(volume * 400))) });
   } catch (e) {}
 }
