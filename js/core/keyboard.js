@@ -62,15 +62,27 @@ export class Keyboard {
 }
 
 // Son des touches à l'écran : un vrai piano échantillonné (Steinway, via smplr).
-let actx = null, piano = null;
+let actx = null, piano = null, masterGain = null;
+const VOLUME_BOOST = 2;    // le rendu par défaut de la librairie est trop faible
+let volumePct = 100;       // réglage utilisateur, 0 à 200 %
 // Les navigateurs n'autorisent le son qu'après un geste de l'utilisateur :
 // on débloque l'audio au premier toucher / clic / touche.
 export function unlockAudio() {
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-    piano = piano || SplendidGrandPiano(actx);
+    if (!piano) {
+      masterGain = actx.createGain();
+      masterGain.gain.value = VOLUME_BOOST * (volumePct / 100);
+      masterGain.connect(actx.destination);
+      piano = SplendidGrandPiano(actx, { destination: masterGain });
+    }
     if (actx.state === "suspended") actx.resume();
   } catch (e) {}
+}
+// Volume du piano, en % (0 à 200), réglable dans les options
+export function setPianoVolume(pct) {
+  volumePct = Math.max(0, Math.min(200, pct));
+  if (masterGain) masterGain.gain.value = VOLUME_BOOST * (volumePct / 100);
 }
 // fin du dernier son joué par l'appli (le micro ne l'écoute pas, pour ne pas s'entendre lui-même)
 export let soundUntil = 0;

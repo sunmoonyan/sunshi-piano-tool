@@ -6,7 +6,7 @@ import { store } from "./core/store.js";
 import { record, flush } from "./core/stats.js";
 import { setupStatsView } from "./stats-view.js";
 import { renderStaff } from "./core/staff.js";
-import { Keyboard, beep, unlockAudio } from "./core/keyboard.js";
+import { Keyboard, beep, unlockAudio, setPianoVolume } from "./core/keyboard.js";
 import * as keyboardMod from "./core/keyboard.js";
 import { MicInput } from "./core/mic.js";
 import { MidiInput } from "./core/midi.js";
@@ -32,6 +32,7 @@ const DEFAULTS = {
   showKeyboard: true,
   keyLabels: true,
   keySound: true,
+  pianoVolume: 100,       // volume du piano, en %
   perRow: "auto",
   theme: "auto",
   accent: "green",
@@ -149,6 +150,7 @@ const PLAY_FIELDS = [
     key: "syncSound", label: "Le son suit la partition (bouton ▶)", type: "toggle", when: notViewer,
     help: "En défilement, chaque note sonne au moment où elle doit être jouée. Dans les morceaux « à mon rythme », le morceau sonne au rythme de tes touches. Sans défilement, ▶ fait écouter la ligne d'un coup.",
   },
+  { key: "pianoVolume", label: "Volume du piano", type: "number", min: 0, max: 200, step: 10, help: "En % du volume normal." },
   { key: "octaveExact", label: "Exiger la bonne octave", type: "toggle", when: notViewer, help: "Décoché : la bonne note dans n'importe quelle octave est acceptée." },
   { key: "skipOnMiss", label: "Passer à la note suivante après une erreur", type: "toggle", when: notViewer },
   {
@@ -856,6 +858,7 @@ settings.onChange((key) => {
   }
   if (["exercises.midi.speed", "exercises.midi.songId", "exercises.midi.lastSound"].includes(key)) return;
   if (key === "syncSound") return syncListenButton();
+  if (key === "pianoVolume") return setPianoVolume(settings.get("pianoVolume"));
   if (key === "playMode") syncListenButton();
   if (key === "exercises.midi.tails") return draw();
   if (key === "statsOn") { $("stats-on").checked = settings.get("statsOn"); return; }
@@ -875,6 +878,7 @@ settings.onChange((key) => {
 function refreshAll() {
   setNotation(settings.get("notation"));
   applyTheme();
+  setPianoVolume(settings.get("pianoVolume"));
   applyKeyboardVisibility();
   syncTabs();
   feedback("");
@@ -919,6 +923,7 @@ const songUI = setupSongUI({ settings, onSong: (s) => { song = s; if (isSong()) 
 // ---------- Démarrage ----------
 setNotation(settings.get("notation"));
 applyTheme();
+setPianoVolume(settings.get("pianoVolume"));
 syncTabs();
 renderPresetPicker();
 applyKeyboardVisibility();
